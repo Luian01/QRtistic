@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Código QR con Imagen de Fondo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+
+        #container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        #input-section {
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+
+        #output-section {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        #preview-image, #output-container {
+            width: 45%;
+            margin: 10px;
+        }
+
+        #custom-qr, #qr-preview, #image-preview {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+            border: 1px solid #ccc;
+        }
+
+        #download-link {
+            margin-top: 10px;
+            display: none;
+        }
+
+        #opacity-label {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generador de Código QR con Imagen de Fondo</h1>
+
+    <!-- Sección de entrada para el contenido del código QR -->
+    <div id="input-section">
+        <label for="qr-data">Contenido del código QR:</label>
+        <input type="text" id="qr-data" placeholder="Texto o URL" oninput="updateQRPreview()">
+
+        <label for="image-upload">Selecciona una imagen de fondo:</label>
+        <input type="file" id="image-upload" onchange="previewImage()">
+    </div>
+
+    <!-- Sección de previsualización de la imagen -->
+    <div id="preview-image">
+        <label>Previsualización de la imagen:</label>
+        <img id="image-preview" alt="Previsualización de la imagen">
+        <br>
+        <label id="opacity-label" for="image-opacity">Ajusta la opacidad de la imagen (0-1):</label>
+        <input type="range" id="image-opacity" min="0" max="1" step="0.1" value="1" oninput="previewImage()">
+    </div>
+
+    <!-- Contenedor para el código QR y la imagen -->
+    <div id="output-section">
+        <!-- Sección de previsualización del código QR -->
+        <div>
+            <label>Previsualización del código QR:</label>
+            <img id="qr-preview" alt="Previsualización del código QR">
+            <br>
+            <label id="opacity-label" for="qr-opacity">Ajusta la opacidad del código QR (0-1):</label>
+            <input type="range" id="qr-opacity" min="0" max="1" step="0.1" value="1" oninput="updateQRPreview()">
+        </div>
+
+        <!-- Sección de código QR generado con imagen de fondo -->
+        <div>
+            <label>Código QR con imagen de fondo:</label>
+            <canvas id="custom-qr" alt="Código QR Personalizado"></canvas>
+        </div>
+    </div>
+
+    <!-- Enlace de descarga -->
+    <a id="download-link" download="custom_qr.png" href="#">Descargar</a>
+
+    <!-- Botón para generar el código QR personalizado -->
+    <button onclick="generateCustomQR()">Generar código QR personalizado</button>
+
+    <!-- Bibliotecas necesarias -->
+    <script src="https://cdn.jsdelivr.net/npm/qrious"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.2/html2canvas.min.js"></script>
+    <script>
+        // Función para actualizar la previsualización del código QR
+        function updateQRPreview() {
+            const qrData = document.getElementById("qr-data").value;
+            const qrPreview = document.getElementById("qr-preview");
+            const qrOpacityInput = document.getElementById("qr-opacity");
+
+            const qr = new QRious({
+                value: qrData,
+                size: 300
+            });
+
+            qrPreview.src = qr.toDataURL("image/png");
+            qrPreview.style.opacity = qrOpacityInput.value;
+        }
+
+        // Función para previsualizar la imagen seleccionada
+        function previewImage() {
+            const imageInput = document.getElementById("image-upload");
+            const imagePreview = document.getElementById("image-preview");
+            const imageOpacityInput = document.getElementById("image-opacity");
+
+            if (imageInput.files.length > 0) {
+                const customImage = imageInput.files[0];
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                };
+
+                reader.readAsDataURL(customImage);
+            } else {
+                imagePreview.src = "";
+            }
+
+            // Aplicar la opacidad a la previsualización de la imagen y el código QR
+            imagePreview.style.opacity = imageOpacityInput.value;
+            updateQRPreview();
+        }
+
+        // Función para generar el código QR personalizado
+        function generateCustomQR() {
+            const qrData = document.getElementById("qr-data").value;
+            const imageInput = document.getElementById("image-upload");
+            const customQRCanvas = document.getElementById("custom-qr");
+            const downloadLink = document.getElementById("download-link");
+
+            if (qrData && imageInput.files.length > 0) {
+                const customImage = imageInput.files[0];
+                const qr = new QRious({
+                    value: qrData,
+                    size: 300
+                });
+
+                customQRCanvas.width = qr.size;
+                customQRCanvas.height = qr.size;
+                const context = customQRCanvas.getContext('2d');
+                context.clearRect(0, 0, qr.size, qr.size);
+
+                // Aplicar la opacidad a la imagen y el código QR
+                const imageOpacity = document.getElementById("image-opacity").value;
+                const qrOpacity = document.getElementById("qr-opacity").value;
+                context.globalAlpha = imageOpacity;
+                const img = new Image();
+                img.onload = function() {
+                    context.drawImage(img, 0, 0, qr.size, qr.size);
+                    context.globalAlpha = qrOpacity;
+                    context.drawImage(qr.canvas, 0, 0);
+                    context.globalAlpha = 1;
+
+                    // Mostrar el enlace de descarga una vez generada la imagen
+                    downloadLink.style.display = "block";
+                    // Configurar el enlace con la imagen generada
+                    downloadLink.href = customQRCanvas.toDataURL("image/png");
+                    // Asignar el nuevo nombre al enlace de descarga
+                    downloadLink.download = "custom_qr.png";
+                };
+                img.src = URL.createObjectURL(customImage);
+            } else {
+                alert("Por favor, ingresa un contenido, selecciona una imagen de fondo y proporciona un nuevo nombre.");
+            }
+        }
+    </script>
+</body>
+</html>
